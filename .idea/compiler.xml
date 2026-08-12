@@ -8,13 +8,21 @@
         <outputRelativeToContentRoot value="true" />
         <module name="eureka-server" />
         <module name="config-server" />
+        <module name="user-service" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="user-service.main" target="21" />
+      <module name="user-service.test" target="21" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="config-server" options="-parameters" />
       <module name="eureka-server" options="-parameters" />
+      <module name="user-service" options="-parameters" />
+      <module name="user-service.main" options="-parameters" />
+      <module name="user-service.test" options="-parameters" />
     </option>
   </component>
 </project>
