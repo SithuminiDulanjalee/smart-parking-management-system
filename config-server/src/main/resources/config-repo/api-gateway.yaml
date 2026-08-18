@@ -4,28 +4,36 @@ server:
 spring:
   cloud:
     gateway:
-      routes:
-        - id: parking-space-service
-          uri: lb://PARKING-SPACE-SERVICE
-          predicates:
-            - Path=/api/v1/parking-spaces/**, /api/parking/**
-          filters:
-            - RewritePath=/api/parking/(?<segment>.*), /api/v1/parking-spaces/$\{segment}
+      server:
+        webflux:
+          routes:
+            - id: parking-space-service
+              uri: lb://PARKING-SPACE-SERVICE
+              predicates:
+                - Path=/api/v1/parking-spaces/**,/api/parking/**
+              filters:
+                - RewritePath=/api/parking/(?<segment>.*),/api/v1/parking-spaces/$\{segment}
 
-        - id: vehicle-service
-          uri: lb://VEHICLE-SERVICE
-          predicates:
-            - Path=/api/v1/vehicles/**, /api/vehicles/**
+            - id: vehicle-service
+              uri: lb://VEHICLE-SERVICE
+              predicates:
+                - Path=/api/v1/vehicles/**,/api/vehicles/**
 
-        - id: user-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/api/v1/users/**, /api/users/**
+            - id: user-service
+              uri: lb://USER-SERVICE
+              predicates:
+                - Path=/api/v1/users/**,/api/users/**
 
-        - id: payment-service
-          uri: lb://PAYMENT-SERVICE
-          predicates:
-            - Path=/api/payments/**, /api/v1/payments/**
+            - id: payment-service
+              uri: lb://PAYMENT-SERVICE
+              predicates:
+                - Path=/api/v1/payments/**,/api/payments/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
 
 eureka:
   client:
