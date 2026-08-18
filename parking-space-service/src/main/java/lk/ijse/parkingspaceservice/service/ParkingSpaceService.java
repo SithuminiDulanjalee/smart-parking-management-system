@@ -1,28 +1,27 @@
 package lk.ijse.parkingspaceservice.service;
 
-import lk.ijse.parkingspaceservice.dto.ParkingSpaceRequest;
-import lk.ijse.parkingspaceservice.dto.ParkingSpaceResponse;
-import lk.ijse.parkingspaceservice.entity.ParkingStatus;
+import lk.ijse.parkingspaceservice.dto.*;
+import lk.ijse.parkingspaceservice.entity.SpaceStatus;
 
 import java.util.List;
 
 public interface ParkingSpaceService {
 
-    ParkingSpaceResponse createParkingSpace(ParkingSpaceRequest request);
+    ParkingSpaceResponse createSpace(ParkingSpaceRequest request);
 
-    ParkingSpaceResponse getParkingSpaceById(Long id);
+    ParkingSpaceResponse updateSpace(Long id, ParkingSpaceRequest request);
 
-    List<ParkingSpaceResponse> getAllParkingSpaces();
+    ParkingSpaceResponse getSpaceById(Long id);
 
-    ParkingSpaceResponse updateParkingSpace(Long id, ParkingSpaceRequest request);
+    List<ParkingSpaceResponse> getAllSpaces();
 
-    void deleteParkingSpace(Long id);
+    void deleteSpace(Long id);
 
-    ParkingSpaceResponse reserveSpace(Long id);
+    List<ParkingSpaceResponse> filterSpaces(String location, SpaceStatus status);
 
-    ParkingSpaceResponse releaseSpace(Long id);
+    ReservationResponse reserveSpace(Long id, ReservationRequest request);
 
-    ParkingSpaceResponse updateStatus(Long id, ParkingStatus status);
+    ReservationResponse releaseSpace(Long id);
 
-    List<ParkingSpaceResponse> filterSpaces(String location, ParkingStatus status);
+    ParkingSpaceResponse updateSpaceStatus(Long id, StatusUpdateRequest request);
 }

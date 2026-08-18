@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "parking_spaces")
@@ -23,12 +24,18 @@ public class ParkingSpace {
     @Column(nullable = false)
     private String location;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ParkingStatus status;
-
     @Column(nullable = false)
     private BigDecimal hourlyRate;
 
-    private String vehicleTypeAllowed;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private VehicleType vehicleTypeAllowed;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SpaceStatus status;
+
+    private Long currentReservedUserId;
+
+    private LocalDateTime updatedAt;
 }

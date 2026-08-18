@@ -1,16 +1,18 @@
 package lk.ijse.parkingspaceservice.service.impl;
 
-import lk.ijse.parkingspaceservice.dto.ParkingSpaceRequest;
-import lk.ijse.parkingspaceservice.dto.ParkingSpaceResponse;
+import lk.ijse.parkingspaceservice.dto.*;
 import lk.ijse.parkingspaceservice.entity.ParkingSpace;
-import lk.ijse.parkingspaceservice.entity.ParkingStatus;
-import lk.ijse.parkingspaceservice.exception.InvalidOperationException;
+import lk.ijse.parkingspaceservice.entity.SpaceStatus;
+import lk.ijse.parkingspaceservice.exception.InvalidSpaceStateException;
+import lk.ijse.parkingspaceservice.exception.ResourceAlreadyExistsException;
 import lk.ijse.parkingspaceservice.exception.ResourceNotFoundException;
 import lk.ijse.parkingspaceservice.repository.ParkingSpaceRepository;
 import lk.ijse.parkingspaceservice.service.ParkingSpaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,58 +23,63 @@ public class ParkingSpaceServiceImpl implements ParkingSpaceService {
     private final ParkingSpaceRepository parkingSpaceRepository;
 
     @Override
-    public ParkingSpaceResponse createParkingSpace(ParkingSpaceRequest request) {
+    @Transactional
+    public ParkingSpaceResponse createSpace(ParkingSpaceRequest request) {
         if (parkingSpaceRepository.existsBySlotNumber(request.getSlotNumber())) {
-            throw new InvalidOperationException("Slot number already exists: " + request.getSlotNumber());
+            throw new ResourceAlreadyExistsException("Parking slot already exists with number: " + request.getSlotNumber());
         }
 
-        ParkingSpace parkingSpace = ParkingSpace.builder()
-                .slotNumber(request.getSlotNumber())
+        ParkingSpace space = ParkingSpace.builder()
+                .slotNumber(request.getSlotNumber().toUpperCase())
                 .location(request.getLocation())
-                .status(ParkingStatus.AVAILABLE)
                 .hourlyRate(request.getHourlyRate())
                 .vehicleTypeAllowed(request.getVehicleTypeAllowed())
+                .status(SpaceStatus.AVAILABLE)
+                .updatedAt(LocalDateTime.now())
                 .build();
 
-        ParkingSpace saved = parkingSpaceRepository.save(parkingSpace);
-        return mapToResponse(saved);
+        ParkingSpace savedSpace = parkingSpaceRepository.save(space);
+        return mapToResponse(savedSpace);
     }
 
     @Override
-    public ParkingSpaceResponse getParkingSpaceById(Long id) {
-        ParkingSpace parkingSpace = parkingSpaceRepository.findById(id)
+    @Transactional
+    public ParkingSpaceResponse updateSpace(Long id, ParkingSpaceRequest request) {
+        ParkingSpace space = parkingSpaceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
-        return mapToResponse(parkingSpace);
+
+        if (!space.getSlotNumber().equalsIgnoreCase(request.getSlotNumber()) &&
+                parkingSpaceRepository.existsBySlotNumber(request.getSlotNumber())) {
+            throw new ResourceAlreadyExistsException("Parking slot number already exists: " + request.getSlotNumber());
+        }
+
+        space.setSlotNumber(request.getSlotNumber().toUpperCase());
+        space.setLocation(request.getLocation());
+        space.setHourlyRate(request.getHourlyRate());
+        space.setVehicleTypeAllowed(request.getVehicleTypeAllowed());
+        space.setUpdatedAt(LocalDateTime.now());
+
+        ParkingSpace updatedSpace = parkingSpaceRepository.save(space);
+        return mapToResponse(updatedSpace);
     }
 
     @Override
-    public List<ParkingSpaceResponse> getAllParkingSpaces() {
+    public ParkingSpaceResponse getSpaceById(Long id) {
+        ParkingSpace space = parkingSpaceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
+        return mapToResponse(space);
+    }
+
+    @Override
+    public List<ParkingSpaceResponse> getAllSpaces() {
         return parkingSpaceRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public ParkingSpaceResponse updateParkingSpace(Long id, ParkingSpaceRequest request) {
-        ParkingSpace parkingSpace = parkingSpaceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
-
-        if (!parkingSpace.getSlotNumber().equals(request.getSlotNumber()) &&
-                parkingSpaceRepository.existsBySlotNumber(request.getSlotNumber())) {
-            throw new InvalidOperationException("Slot number already in use: " + request.getSlotNumber());
-        }
-
-        parkingSpace.setSlotNumber(request.getSlotNumber());
-        parkingSpace.setLocation(request.getLocation());
-        parkingSpace.setHourlyRate(request.getHourlyRate());
-        parkingSpace.setVehicleTypeAllowed(request.getVehicleTypeAllowed());
-
-        ParkingSpace updated = parkingSpaceRepository.save(parkingSpace);
-        return mapToResponse(updated);
-    }
-
-    @Override
-    public void deleteParkingSpace(Long id) {
+    @Transactional
+    public void deleteSpace(Long id) {
         if (!parkingSpaceRepository.existsById(id)) {
             throw new ResourceNotFoundException("Parking space not found with ID: " + id);
         }
@@ -80,70 +87,105 @@ public class ParkingSpaceServiceImpl implements ParkingSpaceService {
     }
 
     @Override
-    public ParkingSpaceResponse reserveSpace(Long id) {
-        ParkingSpace parkingSpace = parkingSpaceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
+    public List<ParkingSpaceResponse> filterSpaces(String location, SpaceStatus status) {
+        List<ParkingSpace> spaces;
 
-        if (parkingSpace.getStatus() != ParkingStatus.AVAILABLE) {
-            throw new InvalidOperationException("Space cannot be reserved. Current status: " + parkingSpace.getStatus());
-        }
-
-        parkingSpace.setStatus(ParkingStatus.RESERVED);
-        ParkingSpace updated = parkingSpaceRepository.save(parkingSpace);
-        return mapToResponse(updated);
-    }
-
-    @Override
-    public ParkingSpaceResponse releaseSpace(Long id) {
-        ParkingSpace parkingSpace = parkingSpaceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
-
-        if (parkingSpace.getStatus() == ParkingStatus.AVAILABLE) {
-            throw new InvalidOperationException("Parking space is already available.");
-        }
-
-        parkingSpace.setStatus(ParkingStatus.AVAILABLE);
-        ParkingSpace updated = parkingSpaceRepository.save(parkingSpace);
-        return mapToResponse(updated);
-    }
-
-    @Override
-    public ParkingSpaceResponse updateStatus(Long id, ParkingStatus status) {
-        ParkingSpace parkingSpace = parkingSpaceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
-
-        parkingSpace.setStatus(status);
-        ParkingSpace updated = parkingSpaceRepository.save(parkingSpace);
-        return mapToResponse(updated);
-    }
-
-    @Override
-    public List<ParkingSpaceResponse> filterSpaces(String location, ParkingStatus status) {
-        List<ParkingSpace> result;
-
-        if (location != null && status != null) {
-            result = parkingSpaceRepository.findByLocationContainingIgnoreCaseAndStatus(location, status);
-        } else if (location != null) {
-            result = parkingSpaceRepository.findByLocationContainingIgnoreCase(location);
+        if (location != null && !location.isBlank() && status != null) {
+            spaces = parkingSpaceRepository.findByLocationIgnoreCaseAndStatus(location, status);
+        } else if (location != null && !location.isBlank()) {
+            spaces = parkingSpaceRepository.findByLocationIgnoreCase(location);
         } else if (status != null) {
-            result = parkingSpaceRepository.findByStatus(status);
+            spaces = parkingSpaceRepository.findByStatus(status);
         } else {
-            result = parkingSpaceRepository.findAll();
+            spaces = parkingSpaceRepository.findAll();
         }
 
-        return result.stream()
+        return spaces.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    private ParkingSpaceResponse mapToResponse(ParkingSpace entity) {
+    @Override
+    @Transactional
+    public ReservationResponse reserveSpace(Long id, ReservationRequest request) {
+        ParkingSpace space = parkingSpaceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
+
+        if (space.getStatus() != SpaceStatus.AVAILABLE) {
+            throw new InvalidSpaceStateException("Parking space is not available for reservation. Current status: " + space.getStatus());
+        }
+
+        space.setStatus(SpaceStatus.RESERVED);
+        space.setCurrentReservedUserId(request.getUserId());
+        space.setUpdatedAt(LocalDateTime.now());
+
+        parkingSpaceRepository.save(space);
+
+        return ReservationResponse.builder()
+                .spaceId(space.getId())
+                .slotNumber(space.getSlotNumber())
+                .location(space.getLocation())
+                .status(space.getStatus())
+                .userId(request.getUserId())
+                .message("Parking space reserved successfully.")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ReservationResponse releaseSpace(Long id) {
+        ParkingSpace space = parkingSpaceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
+
+        if (space.getStatus() == SpaceStatus.AVAILABLE) {
+            throw new InvalidSpaceStateException("Parking space is already available.");
+        }
+
+        Long previousUserId = space.getCurrentReservedUserId();
+        space.setStatus(SpaceStatus.AVAILABLE);
+        space.setCurrentReservedUserId(null);
+        space.setUpdatedAt(LocalDateTime.now());
+
+        parkingSpaceRepository.save(space);
+
+        return ReservationResponse.builder()
+                .spaceId(space.getId())
+                .slotNumber(space.getSlotNumber())
+                .location(space.getLocation())
+                .status(space.getStatus())
+                .userId(previousUserId)
+                .message("Parking space released successfully.")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ParkingSpaceResponse updateSpaceStatus(Long id, StatusUpdateRequest request) {
+        ParkingSpace space = parkingSpaceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Parking space not found with ID: " + id));
+
+        space.setStatus(request.getStatus());
+        if (request.getStatus() == SpaceStatus.AVAILABLE) {
+            space.setCurrentReservedUserId(null);
+        }
+        space.setUpdatedAt(LocalDateTime.now());
+
+        ParkingSpace updatedSpace = parkingSpaceRepository.save(space);
+        return mapToResponse(updatedSpace);
+    }
+
+    private ParkingSpaceResponse mapToResponse(ParkingSpace space) {
         return ParkingSpaceResponse.builder()
-                .id(entity.getId())
-                .slotNumber(entity.getSlotNumber())
-                .location(entity.getLocation())
-                .status(entity.getStatus())
-                .hourlyRate(entity.getHourlyRate())
-                .vehicleTypeAllowed(entity.getVehicleTypeAllowed())
+                .id(space.getId())
+                .slotNumber(space.getSlotNumber())
+                .location(space.getLocation())
+                .hourlyRate(space.getHourlyRate())
+                .vehicleTypeAllowed(space.getVehicleTypeAllowed())
+                .status(space.getStatus())
+                .currentReservedUserId(space.getCurrentReservedUserId())
+                .updatedAt(space.getUpdatedAt())
                 .build();
     }
 }

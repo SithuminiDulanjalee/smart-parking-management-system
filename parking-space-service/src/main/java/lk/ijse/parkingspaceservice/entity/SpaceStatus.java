@@ -1,8 +1,8 @@
 package lk.ijse.parkingspaceservice.entity;
 
-public enum ParkingStatus {
+public enum SpaceStatus {
     AVAILABLE,
     RESERVED,
     OCCUPIED,
-    MAINTENANCE
+    UNDER_MAINTENANCE
 }
