@@ -1,9 +1,9 @@
 package lk.ijse.vehicleservice.controller;
 
 import jakarta.validation.Valid;
-import lk.ijse.vehicleservice.dto.VehicleRequest;
-import lk.ijse.vehicleservice.dto.VehicleResponse;
+import lk.ijse.vehicleservice.dto.*;
 import lk.ijse.vehicleservice.service.VehicleService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,85 +11,45 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/vehicles")
+@RequestMapping({"/api/vehicles", "/api/v1/vehicles"})
+@RequiredArgsConstructor
 public class VehicleController {
 
     private final VehicleService vehicleService;
 
-    public VehicleController(
-            VehicleService vehicleService) {
-
-        this.vehicleService = vehicleService;
-    }
-
     @PostMapping
-    public ResponseEntity<VehicleResponse> register(
-            @Valid @RequestBody VehicleRequest request) {
-
-        VehicleResponse response =
-                vehicleService.register(request);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
-    }
-
-    @GetMapping
-    public ResponseEntity<List<VehicleResponse>>
-    getAll() {
-
-        return ResponseEntity.ok(
-                vehicleService.getAll()
-        );
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<VehicleResponse>
-    getById(@PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                vehicleService.getById(id)
-        );
-    }
-
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<VehicleResponse>>
-    getByUserId(@PathVariable Long userId) {
-
-        return ResponseEntity.ok(
-                vehicleService.getByUserId(userId)
-        );
+    public ResponseEntity<VehicleResponse> registerVehicle(@Valid @RequestBody VehicleRequest request) {
+        return new ResponseEntity<>(vehicleService.registerVehicle(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<VehicleResponse>
-    update(
-            @PathVariable Long id,
-            @Valid @RequestBody VehicleRequest request) {
-
-        return ResponseEntity.ok(
-                vehicleService.update(
-                        id,
-                        request
-                )
-        );
+    public ResponseEntity<VehicleResponse> updateVehicle(@PathVariable Long id,
+                                                         @Valid @RequestBody VehicleRequest request) {
+        return ResponseEntity.ok(vehicleService.updateVehicle(id, request));
     }
 
-    @PostMapping("/{id}/entry")
-    public ResponseEntity<VehicleResponse>
-    entry(@PathVariable Long id) {
-
-        return ResponseEntity.ok(
-                vehicleService.entry(id)
-        );
+    @GetMapping("/{id}")
+    public ResponseEntity<VehicleResponse> getVehicleById(@PathVariable Long id) {
+        return ResponseEntity.ok(vehicleService.getVehicleById(id));
     }
 
-    @PostMapping("/{id}/exit")
-    public ResponseEntity<VehicleResponse>
-    exit(@PathVariable Long id) {
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<VehicleResponse>> getVehiclesByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(vehicleService.getVehiclesByUserId(userId));
+    }
 
-        return ResponseEntity.ok(
-                vehicleService.exit(id)
-        );
+    @PostMapping("/entry")
+    public ResponseEntity<EntryExitLogDTO> simulateEntry(@Valid @RequestBody EntryRequest request) {
+        return ResponseEntity.ok(vehicleService.simulateEntry(request));
+    }
+
+    @PostMapping("/exit")
+    public ResponseEntity<EntryExitLogDTO> simulateExit(@Valid @RequestBody ExitRequest request) {
+        return ResponseEntity.ok(vehicleService.simulateExit(request));
+    }
+
+    @GetMapping("/{id}/logs")
+    public ResponseEntity<List<EntryExitLogDTO>> getVehicleLogs(@PathVariable Long id) {
+        return ResponseEntity.ok(vehicleService.getVehicleLogs(id));
     }
 }

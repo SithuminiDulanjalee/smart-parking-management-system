@@ -6,31 +6,29 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "vehicles")
+@Table(name = "entry_exit_logs")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Vehicle {
+public class EntryExitLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String licensePlate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private VehicleType vehicleType;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id", nullable = false)
+    private Vehicle vehicle;
 
     @Column(nullable = false)
-    private Long userId;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private VehicleStatus status;
+    private String slotNumber;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime entryTime;
+
+    private LocalDateTime exitTime;
+
+    @Column(nullable = false)
+    private String logStatus; // "ACTIVE" or "COMPLETED"
 }
